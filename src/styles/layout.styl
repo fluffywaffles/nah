@@ -1,0 +1,14 @@
+layout__heading(i, margin-start, margin-step)
+  margin 0
+  margin-top (margin-start - margin-step * (i - 1))rem
+
+layout__content(el, size-mod)
+  {el}
+    if el == p
+      margin 0
+      margin-top (size-mod)rem
+      line-height (size-mod * 1.8)rem
+    if el == pre || el == code
+      margin 0
+      margin-top (size-mod * 2)rem
+
