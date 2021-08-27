@@ -1,17 +1,350 @@
+let's talk about some ideas for markup
+
+markdown is nice because it's simple and it lets you format your content
+but it falls short when you want to do anything sophisticated
+
+embedded stuff in markdown, like codeblocks and images, use special syntax
+and it is hard to interpret in its unrendered source form
+
+although tables are the exception - they do look like tables! - they
+aren't exactly perfect. people rarely space out the table syntax in
+markdown sources, so again you can't usually read it in its unrendered
+source form...
+
+and it's not really extensible. people end up mingling it with yaml in
+funky ways to build content with metadata. images are specially handled,
+but everything else you'd want to embed you just need to use html for.
+
+by the way, your markdown parser has to parse html, too...
+
+ideally a better form of markdown...
+
+  - looks good in its source text form
+  - is easier to interpret without knowing markdown
+  - is syntactically consistent with few special-purpose constructs
+  - and supports more features with more extensibility
+  - and doesn't have to parse html while it does its job
+
+a better markdown also isn't restructured text, because...
+
+  - the syntax has a lot of edge cases and most things have multiple forms
+  - even `hyperlinks`_ are stupidly complicated ans made up of syntax soup
+  - why is all unrecognized markup considered comments?? what if you add
+    new features and the comment becomes a directive?? what the heck
+  - seriously how do you even write a parser for this crap
+  - `all`_ :of these: *things* ``parse`` * very* differ\ *ent*\ ly
+  - [references]_ are implicitly global across all compiled files
+  - also |what|
+
+.. _hyperlinks: http://are/ridiculously/complicated
+.. |what| replace:: is this crazy substitution stuff and why
+
+rather, a good markup language...
+
+  - has tagging for connecting documents in a taxonomy
+  - has an easy-to-type syntax without a bunch of reserved keywords
+  - is readable and looks nice and uncluttered in its source text form
+  - supports footnotes in a simple, consistent, and optional way
+  - is easy to extend with new directives
+  - has a customizable shorthand syntax
+  - supports embedding other content, doesn't parse html
+  - supports internal and external references and links
+  - doesn't have a section titled "gotchas" in its documentation
+
+basically just markup that looks good with little syntax and a short spec
+
+and builds on the foundation of deform
+
+---
+
+so some more about this markup language
+
+you can #tag something to have it indexed using a hashtag-style format,
+which is great because everything is basically twitter these days
+
+you can also have an %image(at/some/path [with key-value] parameters) but
+it's just going to be inline if you aren't careful to have the
+
+%image(by/itself [alt text] is a good example of a key-value parameter)
+
+%image(path/to.jpg) {
+  [   scale] 2
+  [alt text] this is a jpeg
+}
+
+you can %[0] footnotify %[1] things %[2] but if you want spaces %(you have
+to group things together)[3]
+
+%[0] link(https://somewhere/else)
+%[1] abbreviation(footnotiferificationify)
+%[2] flavor-text(thanks for hovering)
+%[3] link(./wherever)
+
+this is just an alternative syntax for doing stuff like
+%link([some text] a/path) and %abbreviation([us] united states) and
+%flavor-text([really] buttery) and so on
+
+it's worth nothing that you %[can have stuff like this]
+
+%[can have stuff like this] image(whoa.jpeg)
+
+because the footnote names don't have to be numbers
+
+using names you can link the same thing again pretty easily %[0] without
+repeating yourself, which is a nice detail
+
+so how does this fit into #(deform)?
+
+  - we use ##(compiler directives) for ##tagging
+  - because tags are utilized by the posts compiler to instruct it how to
+    structure the taxonomy of related pages (whoa!)
+  - whereas tags can be ignored by the parser
+  - we then use %%parser-directives for content and formatting
+  - so we have %%directive(invocations with arguments)
+  - and we can allow %%(anonymous groups)[with references] to reuse the
+    same directive invocation across multiple blocks of text
+  - and we can allow %%[implicit groups with references] for
+    footnote-style directive invocations targeting single words
+  - and %%directive(modifiers can affect appearance) @style(strong) maybe
+
+the general form of the syntax is
+  %directive(parameters)[reference] @modifier(argument) {block}
+
+where the block at the end is not as commonly needed, mostly for things
+like blockquotes, code... embedded content
+
+a directive wraps some content or parameters and optionally a reference,
+followed by any number of modifiers, followed possibly by a block of
+nested content
+
+generally when a reference is given to an anonymous group or an implicit
+group, that means there's going to be a directive
+
+however a reference can just be like an <a>nchor from html, what's
+important is to be able to distinguish and ensure uniqueness
+
+so instead of being able to %[0] keep %[0] making %[0] the same reference,
+we need a way to make a unique location for it
+
+
+%mark(come back here)[marked text]
+
+----------
+references
+§[hello]
+----------
+so one option is for a reference %(like this)[§[hello] 1] to point to a
+directive invocation. it can also point to a %(section marker)[§[hello]]
+or to some %(marked text within the document)[%mark[marked text]].
+
+%[§[hello] 1] some-directive()
+
+[aside]
+  what about brackets within the directive text? i think this is a good
+  application for the %raw() idea from deform. you'd use %raw(stuff[]) to
+  explicitly write something with brackets in it. if you need to escape
+  lots of different things you just use multiple invocations of raw. that
+  is, %raw([]{}""''<>||``--==) to escape anything except parens and then
+  %raw{()} to escape parens. or %raw[()] or whatever - choice of
+  delimiter.
+
+  you can escape percent itself with doubles %% as a shorthand for %raw(%)
+
+all of this builds on the ideas from deform for
+  %directive(syntax)[with groups and] @modifiers @like(this)
+
+basically the combination of brackets and parentheses for grouping
+semantically different inputs to a directive, with modifiers afterwards
+for applying orthogonal metadata (like styling notes), is all cribbed from
+the same syntactic ideas that underpin deform
+
+along with the distinction between compiler- and parser-phase directives
+for applying functional and presentational annotations respectively to
+content
+
+when no directive is given, that's an implicit group
+when no directive or group is given, that's a bare reference
+an implicit group with no reference is basically a no-op
+an implicit group with a reference invokes a named directive with the
+  group contents as the text
+a directive, implicit group, or bare reference can all have modifiers
+
+the %definition([language] #deform) encourages stream-of-consciousness and
+continual iteration of style, syntax, and content, because everything can
+be inline %(or out-of-band)[%?], and all contained in a single document
+without multiple syntaxes, multiple compilers, etc.
+
+%[or out-of-band] flavor-text(as much as you desire)
+
+there's a lot of precedent for the idea of separating content from
+presentation, notably html and css. keeping everything together while
+editing it, on the other hand, is the idea that underlies tangle/detangle
+from Knuth's WEB, the idea that underpins CSS-in-JS and HTML-in-JS from
+its popular usage in React and JSX (and in Imba and Riot.js and the Hyper
+framework and... this %link([uthml
+shit] https://github.com/WebReflection/uhtml#readme) and so many other
+places)
+
+
+
+some directives have special forms, which are i guess opinionated
+
+there are two levels of section, heading and subheading
+
+%heading[primary](text §[here])
+
 ==========================================================================
-some content
+text §[here]
 ==========================================================================
 
-introduction
+%heading[secondary](text §[there])
+
+==========================================================================
+text §[there]
+--------------------------------------------------------------------------
+
+%heading[tertiary](text §[elsewhere])
 
 --------------------------------------------------------------------------
-subheading
+text §[elsewhere]
 --------------------------------------------------------------------------
 
-#st
+%subheading[primary](text)
 
-xyz [0] abc [1] 007 [2]
+text
+====
 
-[0]: link()
-[1]: abbreviation()
-[2]: flavor-text()
+%subheading[secondary](text)
+
+text
+----
+
+there are a few basic inline formatting directives
+
+%strong(text)  *text*   bolded
+%italic(text)  _text_   italicized
+%struck(text)  ~text~   strikethrough
+%fixed(text)   `text`   fixed-width or "inline code"
+
+[aside]
+  partially-bolded or formatted words? maybe we tell the parser to join:
+
+    %join(abc %strong(def %italic(ghi)) %italic(jkl) %struck(mno))
+
+  i suppose we could all*ow* for garbage like th*is*, but it's annoying
+  because what about 1*2*3? markdown just expects you to put * spaces *
+  around any asterisks you don't want interpreted
+
+  in deform space is insignificant; to add spaces would require
+    %str[in deform space is insignificant] @implicit-separator(%space)
+
+  and %str[abc def ghi] is abcdefghi
+
+  i wonder, are we trying to come up with a directive insertion algorithm?
+
+  suppose we could insert %str in front of every word, for example
+  (and i mean, suppose we could get that algorithm right, or close to it)
+  (... especially in a world where unicode is a thing ...)
+
+  OH huh... suppose when we want to stop treating spaces as significant,
+  we explicitly drop down a level of abstraction and %string[s p r e a d]
+  out?
+
+  so to bold the "ead" in "spread"... %string[spr %strong(ead)]
+
+  that's interesting. it's weird because *this is all bold* and whitespace
+  is included -- that's intuitive here, that's how markdown works. what if
+  you wanted to ma*ke part of a sen*tence bold, like so? the asterisks are
+  an annoying way to try to do that, but ma%strong(ke part of a sen)tence
+  bold could work... the troublesome part is wanting more space, like
+  %string[ma %strong(ke part of a sen) tence] bold. having spaces switch
+  between significant and insignificant in the middle of something is a
+  bit awkward.
+
+  i think if you want to split up a word and format parts of it, then the
+  onus is on you to split up the word. i think the least egregious version
+  of that so far is %string[ma %strong(ke) %<sp> me %<sp> %italic(sa) d].
+
+and some linewise directives
+
+- like
+- lists
+
+%list() { like lists }
+
+1. and "ordered"
+2. ones too
+5. and the numbers are the numbers darn it, so this is five
+   and yeah you can have hanging indents, all the normal stuff is here
+
+%list() { [1] and "ordered" [2] ones too [5] and … etc }
+%list() @numbered(ordinal) { [and "ordered"] [ones too] [and … etc] }
+
+I. i guess you can have
+II. roman numerals
+III. stuff like that
+IV. yeah, why not
+
+%list() { [I] i guess you can have [II] roman numerals [III] etc }
+%list() @numbered(roman) { [i guess you can have] [roman numerals] }
+
+> there are > blockquotes
+>> and nested >> blockquotes
+
+%blockquote([prefix] %indent) {
+  there are %%blockquote[]s
+  %blockquote([prefix] %indent) {
+    and nested %%blockquote[]s
+  }
+}
+
+but frankly i don't have much respect for the special case for code fences
+we can just use a directive for that
+
+%code(html [prefix] %indent) {
+  <html>
+    <body>
+      <p>hey look we're writing code</p>
+    </body>
+  </html>
+}
+
+==========================================================================
+some heading
+==========================================================================
+some subheading
+--------------------------------------------------------------------------
+
+=================
+also some heading
+=================
+and some subheading
+-------------------
+
+some regular text
+
+==========================================================================
+primary heading
+==========================================================================
+
+==========================================================================
+secondary heading
+--------------------------------------------------------------------------
+
+--------------------------------------------------------------------------
+tertiary heading
+--------------------------------------------------------------------------
+
+this also works
+===============
+
+some more regular text
+
+or this also works
+------------------
+
+
+term  alias                 description
+---------------------------------------
+the alignment of heading text might matter, but i don't know how to make
+that work nicely without making the parser kind of complicated
